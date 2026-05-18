@@ -1,4 +1,4 @@
-# ⚡ SmallCode
+# SmallCode
 
 **AI coding agent optimized for small LLMs (≤20B parameters)**
 
@@ -62,7 +62,7 @@ export ANTHROPIC_API_KEY=sk-ant-...  # optional, for escalation
 
 SmallCode is built with a modular architecture:
 
-`
+```
 bin/
 ├── smallcode.js        Main entry point + agent loop
 ├── governor.js         Tool scoring, verification, decompose
@@ -78,60 +78,44 @@ src/
 ├── tools/builtin/      Tool implementations
 ├── governor/           Verifier, scorer, hard fail
 └── core/               Config, events, session
-`
+```
 
 ## Key Features
 
-### 🦴 BoneScript Integration
+### BoneScript Integration
 For Node.js/TypeScript backends, SmallCode uses BoneScript — write ONE `.bone` file and compile it to a complete project (routes, auth, DB, events, migrations, SDK, admin panel, Docker, CI). Reduces 8-15 tool calls to 1-2, dramatically improving reliability with small models.
 
-### ⬆ Model Escalation
-When the local model hard fails after retry + decompose, SmallCode can optionally escalate to a stronger cloud model (Claude, OpenAI, DeepSeek). Fully opt-in — requires an API key. Session-limited to prevent runaway costs. The escalation model gets full context of what was tried and what failed.
-
-### 🧠 Context Budget Engine
-Never exceeds your model's context window. Automatically summarizes large files to signatures, evicts old messages, and tracks token usage in real time.
-
-### 🔀 2-Stage Tool Routing
-Halves the schema context overhead. Model picks a category (read/write/search/run/plan) first, then gets only relevant tool schemas. Critical for models with 8-16k context.
-
-### 🛠 Forgiving Tool Call Parser
-Small models produce messy output. SmallCode parses tool calls from JSON, YAML, XML, Hermes format, or plain text. Auto-repairs common mistakes (wrong param names, type mismatches).
-
-### 📋 TODO-Driven Planning
-Complex tasks get decomposed into atomic steps. The model reads a TODO file each turn to know where it is. Each step is validated (lint/compile) before moving on.
-
-### ✏️ Patch-First Editing
-Search-and-replace as the primary edit primitive. Small models can't reliably reproduce entire files — they truncate, hallucinate, or drift. `patch` is safer and more context-efficient.
-
-### 🔄 Early-Stop Detection
-Detects repetition loops and runaway output. Saves tokens and time when a small model starts spinning.
-
-### 📊 Model Profiles
-Per-model configuration: context length, tool format (native/hermes/json/xml/text), chat template, strengths/weaknesses. Auto-adapts prompting strategy.
-
-### 💾 Working Memory
-Persistent scratchpad that survives across turns. Compensates for limited reasoning depth — the model can write notes to itself.
-
-## Supported Models
-
-Any OpenAI-compatible endpoint works. Tested and rated with SmallCode's harness:
-
-| Model | Size | Context | Tool Calling | Rating |
-|-------|------|---------|--------------|--------|
-| Gemma 4 E4B (MoE) | 8B/4B active | 256k | ✅ Native | ⭐⭐⭐⭐⭐ |
-| Qwen3 8B | 8B | 128k | ✅ Native | ⭐⭐⭐⭐⭐ |
-| Devstral Small | 14B | 128k | ✅ Native | ⭐⭐⭐⭐⭐ |
-| Qwen3 14B | 14B | 128k | ✅ Native | ⭐⭐⭐⭐⭐ |
-| Gemma 4 27B (MoE) | 27B/4B active | 256k | ✅ Native | ⭐⭐⭐⭐⭐ |
-| Llama 4 Scout | 17B active | 512k | ✅ Native | ⭐⭐⭐⭐ |
-| Mistral Small 3.2 | 24B | 128k | ✅ Native | ⭐⭐⭐⭐ |
-| Phi-4 Mini | 3.8B | 128k | ✅ Native | ⭐⭐⭐ |
-| DeepSeek-R1-0528 (distill) | 14B | 64k | ✅ Native | ⭐⭐⭐⭐ |
+### Model Escalation
+When the local model hard fails after retry + decompose, SmallCode can optionally escalate to a stronger cloud model (Claude, OpenAI, DeepSeek). Fully opt-in — requires an API key. Session-limited to prevent runaway costs.
 
 **Escalation targets** (cloud, used only on hard fail):
 - Claude Sonnet 4.5 / 4.6, Haiku 4.5
 - GPT-5.4 Mini / Nano
 - DeepSeek V4 / V4 Pro / V4 Flash
+
+### Context Budget Engine
+Never exceeds your model's context window. Automatically summarizes large files to signatures, evicts old messages, and tracks token usage in real time.
+
+### 2-Stage Tool Routing
+Halves the schema context overhead. Model picks a category (read/write/search/run/plan) first, then gets only relevant tool schemas. Critical for models with 8-16k context.
+
+### Forgiving Tool Call Parser
+Small models produce messy output. SmallCode parses tool calls from JSON, YAML, XML, Hermes format, or plain text. Auto-repairs common mistakes (wrong param names, type mismatches).
+
+### TODO-Driven Planning
+Complex tasks get decomposed into atomic steps. The model reads a TODO file each turn to know where it is. Each step is validated (lint/compile) before moving on.
+
+### Patch-First Editing
+Search-and-replace as the primary edit primitive. Small models can't reliably reproduce entire files — they truncate, hallucinate, or drift. `patch` is safer and more context-efficient.
+
+### Early-Stop Detection
+Detects repetition loops and runaway output. Saves tokens and time when a small model starts spinning.
+
+### Model Profiles
+Per-model configuration: context length, tool format (native/hermes/json/xml/text), chat template, strengths/weaknesses. Auto-adapts prompting strategy.
+
+### Working Memory
+Persistent scratchpad that survives across turns. Compensates for limited reasoning depth — the model can write notes to itself.
 
 ## Configuration
 
@@ -171,21 +155,26 @@ auto_approve = false
 | `/memory` | Show working memory |
 | `/plan` | Show current task plan |
 | `/model` | Show/switch model |
+| `/skill` | Manage reusable skills |
+| `/plugin` | Install/manage plugins |
+| `/sessions` | List/resume saved sessions |
 | `/help` | Show all commands |
 
 ## Tools
 
 | Tool | Description |
 |------|-------------|
-| `bone_compile` | Compile .bone → full backend project |
+| `bone_compile` | Compile .bone to full backend project |
 | `bone_check` | Validate .bone file (type errors, constraints) |
+| `list_projects` | List all indexed projects with stats |
+| `graph_search` | Code graph symbol search |
+| `explain_symbol` | Full symbol explanation (callers, callees) |
 | `read_file` | Read file contents |
 | `write_file` | Create/overwrite files |
 | `patch` | Search-and-replace edit |
 | `bash` | Run shell commands |
 | `search` | Regex search (ripgrep) |
 | `find_files` | Glob file search |
-| `graph_search` | Code graph symbol search |
 | `memory_load` | Load relevant project memory |
 | `memory_remember` | Save knowledge to memory |
 
