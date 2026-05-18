@@ -771,9 +771,18 @@ async function executeTool(name, args) {
       const dir = path.dirname(filePath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       const existed = fs.existsSync(filePath);
+      const oldContent = existed ? fs.readFileSync(filePath, 'utf-8') : null;
       fs.writeFileSync(filePath, args.content);
       const lineCount = args.content.split('\n').length;
       const action = existed ? 'Updated' : 'Created';
+
+      // Show diff for overwrites in fullscreen mode
+      if (_fullscreenRef && existed && oldContent) {
+        const preview = oldContent.split('\n').slice(0, 5).join('\n');
+        const newPreview = args.content.split('\n').slice(0, 5).join('\n');
+        _fullscreenRef.addDiff(args.path, preview + '\n...', newPreview + '\n...', 1);
+      }
+
       return { result: `${action} ${args.path} (${lineCount} lines)`, action, path: args.path, lines: lineCount };
     }
 
@@ -790,8 +799,12 @@ async function executeTool(name, args) {
       const oldLines = args.old_str.split('\n').length;
       const newLines = args.new_str.split('\n').length;
 
-      // Show inline diff
-      showMiniDiff(args.path, args.old_str, args.new_str, lineNum);
+      // Show diff in fullscreen TUI or classic
+      if (_fullscreenRef) {
+        _fullscreenRef.addDiff(args.path, args.old_str, args.new_str, lineNum);
+      } else {
+        showMiniDiff(args.path, args.old_str, args.new_str, lineNum);
+      }
 
       return { result: `Patched ${args.path}: replaced ${oldLines} lines with ${newLines} lines at line ${lineNum}`, action: 'Edited', path: args.path, line: lineNum };
     }
@@ -1453,6 +1466,30 @@ Read the FULL file above carefully. Fix ALL errors. Use the patch tool with the 
 
   if (toolCallsThisTurn > 0) {
     console.log(tui.turnSummary(toolCallsThisTurn));
+
+    // Auto git commit if files were changed and we're in a git repo
+    if (config.git?.auto_commit === true || process.env.SMALLCODE_AUTO_COMMIT === 'true') {
+      try {
+        const { execSync } = require('child_process');
+        const status = execSync('git status --porcelain', { encoding: 'utf-8', cwd: process.cwd(), timeout: 5000 });
+        if (status.trim()) {
+          // Get a short summary from the first user message this turn
+          const lastUser = [...conversationHistory].reverse().find(m => m.role === 'user' && !m.content.startsWith('['));
+          const commitMsg = lastUser
+            ? `smallcode: ${lastUser.content.slice(0, 50).replace(/\n/g, ' ')}`
+            : 'smallcode: auto-commit';
+          execSync('git add -A', { cwd: process.cwd(), timeout: 5000 });
+          execSync(`git commit -m "${commitMsg.replace(/"/g, '\\"')}"`, { encoding: 'utf-8', cwd: process.cwd(), timeout: 10000 });
+          if (_fullscreenRef) {
+            _fullscreenRef.addTool('git', 'ok', `committed: ${commitMsg.slice(0, 60)}`);
+          } else {
+            console.log(chalk.green(`  ✓ git commit: ${commitMsg.slice(0, 60)}`));
+          }
+        }
+      } catch {
+        // Not a git repo or commit failed — silently skip
+      }
+    }
   }
 }
 

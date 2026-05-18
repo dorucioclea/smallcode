@@ -1,271 +1,195 @@
 import pygame
 import sys
-import math
+import random
 
 # --- Constants ---
 SCREEN_WIDTH = 1000
-SCREEN_HEIGHT = 700
+SCREEN_HEIGHT = 600
 FPS = 60
 
 # Colors
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
-GOLD = (255, 215, 0)
+GREEN = (0, 150, 0)
+RED = (200, 0, 0)
+BLUE = (0, 0, 200)
 
-# --- Game Classes ---
+# --- Classes ---
 
-class Player:
-    def __init__(self):
-        self.health = 100
-        self.max_health = 100
-        self.pos = pygame.Vector2(50, SCREEN_HEIGHT // 2)
-        self.speed = 3
-        self.color = BLUE
-
-    def draw(self, screen):
-        pygame.draw.circle(screen, self.color, (int(self.pos.x), int(self.pos.y)), 15)
-        # Simple health bar visualization above the player
-        health_ratio = self.health / self.max_health
-        bar_width = 300
-        bar_height = 20
-        pygame.draw.rect(screen, RED, (self.pos.x - 150, self.pos.y - 30, bar_width * health_ratio, bar_height))
-        pygame.draw.rect(screen, GREEN, (self.pos.x - 150, self.pos.y - 30, bar_width, bar_height), 2)
-
-    def update(self, target):
-        # Simple movement towards a target point or along a path
-        direction = target - self.pos
-        distance = direction.length()
-        if distance > 0:
-            self.pos += direction.normalize() * self.speed
-        return self.pos
-
-class Enemy(pygame.sprite.Sprite):
-    def __init__(self, start_pos, spawn_rate=1000):
-        super().__init__()
-        self.health = 50
-        self.max_health = 50
-        self.damage = 10
-        self.speed = 2 + (pygame.time.get_ticks() // 100) % 3 # Simple speed variation
-        self.spawn_rate = spawn_rate
-        self.spawn_time = pygame.time.get_ticks()
-        self.is_alive = True
-
-        # Visual representation: simple circle
-        self.radius = 15
-        self.image = pygame.Surface([self.radius*2, self.radius*2], pygame.SRCALPHA)
-        pygame.draw.circle(self.image, RED, (self.radius, self.radius), self.radius)
-        self.rect = self.image.get_rect()
-
-        # Pathing logic: Assume a simple linear path for now
-        self.path = [(50, 100), (50, 400), (900, 400)] # Example waypoints
-        self.current_waypoint_index = 0
-        self.pos = pygame.Vector2(start_pos[0], start_pos[1])
-        self.target_pos = pygame.Vector2(self.path[0][0], self.path[0][1])
-
-    def update(self, player_pos):
-        if not self.is_alive:
-            return
-
-        # Move towards the next waypoint or the player if it's closer/more important
-        target = self.get_next_target()
-        direction = target - pygame.Vector2(self.rect.centerx, self.rect.centery)
-        distance = direction.length()
-
-        if distance > 0:
-            self.pos += direction.normalize() * self.speed
-        else:
-            # Reached current target/waypoint
-            self.current_waypoint_index = (self.current_waypoint_index + 1) % len(self.path)
-            self.target_pos = pygame.Vector2(self.path[self.current_waypoint_index][0], self.path[self.current_waypoint_index][1])
-
-        # Update sprite position based on calculated vector
-        self.rect.center = (int(self.pos.x), int(self.pos.y))
-
-
-    def get_next_target(self):
-        # Simple implementation: always move towards the next waypoint in sequence
-        if self.current_waypoint_index < len(self.path) - 1:
-            return pygame.Vector2(self.path[self.current_waypoint_index + 1][0], self.path[self.current_waypoint_index + 1][1])
-        else:
-            # If it's the last waypoint, maybe target the player? (Simplified)
-            return pygame.Vector2(50, SCREEN_HEIGHT // 2) # Target Player start for simplicity
-
-    def draw(self, screen):
-        pygame.draw.circle(screen, RED, (int(self.pos.x), int(self.pos.y)), self.radius)
-
-
-class Tower(pygame.sprite.Sprite):
-    def __init__(self, x, y, range_val, damage_val, fire_rate):
-        super().__init__()
-        self.range = range_val
-        self.damage = damage_val
-        self.fire_rate = fire_rate # Time between shots (in ms)
-        self.last_shot_time = pygame.time.get_ticks()
-
-        # Visual representation: simple tower base
-        self.image = pygame.Surface([50, 50])
-        self.image.fill(GREEN)
-        self.rect = self.image.get_rect()
-        self.rect.center = (x, y)
-
-    def update(self, enemies):
-        now = pygame.time.get_ticks()
-        if now - self.last_shot_time > self.fire_rate:
-            # Find the nearest enemy in range
-            target = self.find_target(enemies)
-            if target:
-                self.shoot(target)
-                self.last_shot_time = now
-
-    def find_target(self, enemies):
-        best_target = None
-        min_dist = float('inf')
-        for enemy in enemies:
-            # Calculate distance from tower center to enemy center
-            dist = math.hypot(enemy.rect.centerx - self.rect.centerx, enemy.rect.centery - self.rect.centery)
-            if dist <= self.range and dist < min_dist:
-                min_dist = dist
-                best_target = enemy
-        return best_target
-
-    def shoot(self, target):
-        # Simple projectile implementation (just damage applied for now)
-        print(f"Tower at {self.rect.center} hits {target.health} with {self.damage} damage.")
-        target.take_damage(self.damage)
-
-
-class Projectile(pygame.sprite.Sprite):
-    def __init__(self, start_pos, target_pos, speed, damage):
-        super().__init__()
-        self.image = pygame.Surface([5, 10])
-        self.image.fill(GOLD)
-        self.rect = self.image.get_rect()
-        self.rect.center = start_pos
+class Enemy:
+    def __init__(self, start_pos, health, speed, reward):
+        self.x = start_pos[0]
+        self.y = start_pos[1]
+        self.health = health
+        self.max_health = health
         self.speed = speed
-        self.damage = damage
-        self.target = target_pos
+        self.reward = reward
+        self.rect = pygame.Rect(self.x, self.y, 30, 30)
 
-    def update(self):
-        # Move towards the target (simplified: move directly)
-        direction = pygame.math.Vector2(self.target[0] - self.rect.centerx, self.target[1] - self.rect.centery).normalize()
-        self.rect.x += direction.x * self.speed
-        self.rect.y += direction.y * self.speed
+    def move(self, target_pos):
+        # Simple movement towards a fixed point (the end of the path)
+        dx = target_pos[0] - self.x
+        dy = target_pos[1] - self.y
+        distance = pygame.math.Vector2(target_pos[0] - self.x, target_pos[1] - self.y).length()
 
-# --- Game Logic ---
+        if distance > 0:
+            self.x += (dx / distance) * self.speed
+            self.y += (dy / distance) * self.speed
+        
+        self.rect.topleft = (int(self.x), int(self.y))
+
+    def draw(self, screen):
+        # Draw enemy as a red square
+        pygame.draw.rect(screen, RED, self.rect)
+        # Draw health bar above the enemy
+        health_ratio = self.health / self.max_health
+        pygame.draw.rect(screen, (255, 0, 0), (self.rect.left, self.rect.top - 10, self.rect.width * health_ratio, 5))
+
+    def get_hit(self, damage):
+        self.health -= damage
+        if self.health < 0:
+            self.health = 0
+        return True # Indicates it was hit
+
+class Tower:
+    def __init__(self, x, y, tower_type="basic"):
+        self.x = x
+        self.y = y
+        self.tower_type = tower_type
+        self.range = 150
+        self.damage = 10
+        self.fire_rate = 60 # Frames between shots (lower is faster)
+        self.last_shot_time = 0
+
+    def draw(self, screen):
+        # Draw tower as a blue square/structure
+        pygame.draw.rect(screen, BLUE, (self.x - 25, self.y - 30, 50, 60))
+        # Optional: Draw range indicator
+        pygame.draw.circle(screen, (100, 100, 100), (int(self.x), int(self.y)), self.range, 2)
+
+    def attack(self, enemies):
+        global score
+        # Find the weakest enemy in range to target
+        target = None
+        min_dist = float('inf')
+        
+        for enemy in enemies:
+            distance = pygame.math.Vector2(enemy.rect.centerx, enemy.rect.centery).distance_to((self.x, self.y))
+            if distance <= self.range and distance < min_dist:
+                min_dist = distance
+                target = enemy
+        
+        if target:
+            # Simple attack logic: hit the first one found in range
+            return True # Indicates an attack was made
+        return False
 
 class Game:
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        pygame.display.set_caption("SmallCode TD")
+        pygame.display.set_caption("SmallCode Tower Defense")
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font(None, 36)
 
         # Game State Variables
-        self.player = Player()
-        self.enemies = pygame.sprite.Group()
-        self.towers = pygame.sprite.Group()
-        self.projectiles = pygame.sprite.Group()
-        self.all_sprites = pygame.sprite.Group(self.player, self.enemies, self.towers, self.projectiles)
+        self.score = 0
+        self.lives = 20
+        self.wave_number = 0
+        self.running = True
 
-        # Initialize game elements
-        self.setup_game()
+        # --- Game Elements Initialization ---
+        self.enemies = []
+        self.towers = [Tower(150, 300)] # Start with one tower at (x, y)
+        self.path_end = (900, 200) # Target position for enemies
 
-    def setup_game(self):
-        # 1. Player Setup (already done in __init__)
-        pass # Player is initialized
-
-        # 2. Tower Placement Example
-        tower1 = Tower(300, 250, range_val=200, damage_val=15, fire_rate=1000)
-        self.towers.add(tower1)
-
-        # 3. Initial Enemies (Spawning handled in loop for continuous flow)
-        self.spawn_enemy(start_pos=(SCREEN_WIDTH - 50, SCREEN_HEIGHT // 2))
-
-    def spawn_enemy(self, start_pos):
-        new_enemy = Enemy(start_pos)
-        self.enemies.add(new_enemy)
-        self.all_sprites.add(new_enemy)
-
-    def handle_events(self):
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return False
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    return False
-                # Basic movement controls for player (optional)
-                if event.key == pygame.K_UP:
-                    self.player.pos.y -= self.player.speed * 2
-                elif event.key == pygame.K_DOWN:
-                    self.player.pos.y += self.player.speed * 2
-                elif event.key == pygame.K_LEFT:
-                    self.player.pos.x -= self.player.speed * 2
-                elif event.key == pygame.K_RIGHT:
-                    self.player.pos.x += self.player.speed * 2
-        return True
+    def spawn_enemy(self):
+        # Spawn point is assumed to be off-screen left
+        start_pos = (0, random.randint(150, 450))
+        health = 30 + self.wave_number * 5
+        speed = 2 + self.wave_number * 0.1
+        reward = 10 + self.wave_number * 2
+        new_enemy = Enemy(start_pos, health, speed, reward)
+        self.enemies.append(new_enemy)
 
     def update_game_state(self):
-        # 1. Update Player Position (if needed)
-        pass # Player movement is handled by key presses in handle_events
-
-        # 2. Update Enemies and Check for Deaths/Exits
+        # 1. Move Enemies
         for enemy in self.enemies:
-            enemy.update(self.player.pos)
-            # Simple check: if it moves too far off screen, remove it (or count it as passed)
-            if enemy.rect.left > SCREEN_WIDTH + 50:
-                print("Enemy escaped!")
-                # TODO: Deduct life/score here
-
-        # 3. Tower Attacks
+            enemy.move(self.path_end)
+            
+        # 2. Tower Attacks (Simplified for now, assuming towers are placed correctly)
         for tower in self.towers:
-            tower.update(self.enemies)
+            tower.attack(self.enemies)
 
-        # 4. Projectile Updates (If implemented fully)
-        self.projectiles.update()
+        # 3. Check for Deaths/Progression
+        new_enemies = []
+        enemies_to_remove = []
+        for i, enemy in enumerate(self.enemies):
+            if enemy.rect.right > SCREEN_WIDTH - 50: # Reached the end of the map
+                self.lives -= 1
+                print(f"Enemy reached the end! Lives left: {self.lives}")
+            else:
+                new_enemies.append(enemy)
+        self.enemies = new_enemies
 
-        # 5. Spawn New Enemies periodically
-        if pygame.time.get_ticks() % 100 < self.clock.get_fps(): # Simple timing mechanism
-            self.spawn_enemy(start_pos=(SCREEN_WIDTH - 50, SCREEN_HEIGHT // 2))
+        # 4. Wave Management (Simple spawning logic for demonstration)
+        if len(self.enemies) < 10 and random.randint(1, 5) == 1:
+            self.spawn_enemy()
+        
+        # Check win/loss conditions
+        if self.lives <= 0:
+            print("Game Over!")
+            self.running = False
 
-    def draw_game(self):
-        self.screen.fill((139, 69, 19)); # Brown background for ground/map
+    def draw_ui(self):
+        # Draw Score and Lives
+        score_text = self.font.render(f"Score: {self.score}", True, BLACK)
+        pygame.draw.rect(self.screen, WHITE, (10, 10, 200, 40))
+        self.screen.blit(score_text, (20, 20))
 
-        # Draw Path (if implemented)
-        pygame.draw.line(self.screen, BLACK, (50, 100), (900, 100), 5)
-        pygame.draw.line(self.screen, BLACK, (50, 400), (900, 400), 5)
+        lives_text = self.font.render(f"Lives: {self.lives}", True, BLACK)
+        pygame.draw.rect(self.screen, WHITE, (230, 10, 150, 40))
+        self.screen.blit(lives_text, (240, 20))
 
-        # Draw all sprites
-        self.all_sprites.draw(self.screen)
-
-        # Draw Player overlay elements (Health Bar)
-        self.player.draw(self.screen)
-
-        # Draw UI/HUD (Score, Money, etc.)
-        score_text = self.font.render(f"Enemies Left: {len(self.enemies)}", True, BLACK)
-        self.screen.blit(score_text, (10, 10))
-
-        pygame.display.flip()
-
-    def run(self):
-        running = True
-        while running:
-            running = self.handle_events()
+    def run_game(self):
+        while self.running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                # Add mouse click handling for placing towers here later
+                
+            # Update logic
             self.update_game_state()
-            self.draw_game()
-            self.clock.tick(FPS)
-        return True
 
-# --- Main Execution ---
+            # Drawing
+            self.screen.fill(GREEN) # Grass background
+            
+            # Draw Path (Simple visual guide)
+            pygame.draw.rect(self.screen, (100, 100, 100), (0, 0, SCREEN_WIDTH, 200))
+
+            # Draw Towers
+            for tower in self.towers:
+                tower.draw(self.screen)
+            
+            # Draw Enemies and check hits
+            for enemy in self.enemies:
+                enemy.draw(self.screen)
+            
+            # Draw UI
+            self.draw_ui()
+
+            pygame.display.flip()
+            self.clock.tick(FPS)
+
+        print("Game loop finished.")
+
+
 if __name__ == "__main__":
+    game = Game()
     try:
-        game = Game()
-        game.run()
+        game.run_game()
     except pygame.error as e:
         print(f"Pygame Error: {e}")
-        print("Ensure Pygame is installed: pip install pygame")
+        print("Make sure Pygame is installed: pip install pygame")
     finally:
         pygame.quit()

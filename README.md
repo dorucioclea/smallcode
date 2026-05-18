@@ -129,9 +129,9 @@ Any OpenAI-compatible endpoint works. Tested and rated with SmallCode's harness:
 | DeepSeek-R1-0528 (distill) | 14B | 64k | ✅ Native | ⭐⭐⭐⭐ |
 
 **Escalation targets** (cloud, used only on hard fail):
-- Claude Sonnet 4 / Haiku 4
-- GPT-4o / GPT-4o-mini
-- DeepSeek Coder
+- Claude Sonnet 4.5 / 4.6, Haiku 4.5
+- GPT-5.4 Mini / Nano
+- DeepSeek V4 / V4 Pro / V4 Flash
 
 ## Configuration
 

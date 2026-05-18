@@ -719,6 +719,34 @@ class FullScreenTUI {
     this.render();
   }
 
+  // Show a diff in the chat panel (non-blocking, inline)
+  addDiff(filePath, oldStr, newStr, lineNum) {
+    const t = this.theme;
+    const maxLines = 8;
+
+    this.chatLines.push(`${t.border}  ┌─ ${ANSI.reset}${t.accent}${filePath}:${lineNum}${ANSI.reset}`);
+
+    const oldLines = oldStr.split('\n').slice(0, maxLines);
+    const newLines = newStr.split('\n').slice(0, maxLines);
+
+    for (const line of oldLines) {
+      this.chatLines.push(`${t.border}  │ ${ANSI.reset}${t.error}- ${line}${ANSI.reset}`);
+    }
+    if (oldStr.split('\n').length > maxLines) {
+      this.chatLines.push(`${t.border}  │ ${ANSI.reset}${t.muted}  ... (${oldStr.split('\n').length - maxLines} more)${ANSI.reset}`);
+    }
+    for (const line of newLines) {
+      this.chatLines.push(`${t.border}  │ ${ANSI.reset}${t.success}+ ${line}${ANSI.reset}`);
+    }
+    if (newStr.split('\n').length > maxLines) {
+      this.chatLines.push(`${t.border}  │ ${ANSI.reset}${t.muted}  ... (${newStr.split('\n').length - maxLines} more)${ANSI.reset}`);
+    }
+
+    this.chatLines.push(`${t.border}  └─${ANSI.reset}`);
+    this.chatScroll = 0;
+    this.render();
+  }
+
   setStreaming(streaming) {
     this.isStreaming = streaming;
     this.render();

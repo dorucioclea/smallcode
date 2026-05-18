@@ -37,3 +37,7 @@ auto_approve = false
 # model = ""               # blank = use provider default
 max_per_session = 5        # max escalations per session
 confirm = true             # ask before escalating (costs money)
+
+[git]
+# Auto-commit changes after each successful agent turn (disabled by default)
+auto_commit = false

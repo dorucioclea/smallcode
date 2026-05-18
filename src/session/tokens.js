@@ -39,13 +39,14 @@ const MODEL_PRICING = {
   'default': { input: 0, output: 0 },
 
   // Escalation models (cloud)
-  'claude-sonnet-4-20250514': { input: 3, output: 15 },
-  'claude-haiku-4-20250514': { input: 0.25, output: 1.25 },
-  'claude-opus-4-20250514': { input: 15, output: 75 },
-  'gpt-4o': { input: 2.5, output: 10 },
-  'gpt-4o-mini': { input: 0.15, output: 0.6 },
-  'gpt-4-turbo': { input: 10, output: 30 },
-  'deepseek-coder': { input: 0.14, output: 0.28 },
+  'claude-sonnet-4-5': { input: 3, output: 15 },
+  'claude-sonnet-4-6': { input: 3, output: 15 },
+  'claude-haiku-4-5': { input: 0.25, output: 1.25 },
+  'gpt-5.4-mini': { input: 0.4, output: 1.6 },
+  'gpt-5.4-nano': { input: 0.1, output: 0.4 },
+  'deepseek-v4': { input: 0.14, output: 0.28 },
+  'deepseek-v4-pro': { input: 0.5, output: 1.0 },
+  'deepseek-v4-flash': { input: 0.07, output: 0.14 },
 };
 
 /**

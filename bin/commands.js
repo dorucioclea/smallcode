@@ -277,7 +277,7 @@ module.exports = function createCommandHandler(config, conversationHistory, impr
           const plugins = pl.list();
           if (plugins.length === 0) {
             console.log(chalk.gray('  No plugins installed.'));
-            console.log(chalk.gray('  Add plugins to .smallcode/plugins/ or ~/.config/smallcode/plugins/'));
+            console.log(chalk.gray('  Install: /plugin install <npm-package-or-github-url>'));
           } else {
             console.log(chalk.bold(`  Plugins (${plugins.length}):`));
             for (const p of plugins) {
@@ -286,8 +286,44 @@ module.exports = function createCommandHandler(config, conversationHistory, impr
               if (p.commands.length) console.log(`      Commands: ${p.commands.join(', ')}`);
             }
           }
+        } else if (sub === 'install') {
+          const pkg = parts[2];
+          if (!pkg) {
+            console.log(chalk.gray('  Usage: /plugin install <npm-package-or-github-url>'));
+            console.log(chalk.gray('  Example: /plugin install smallcode-plugin-lint'));
+            console.log(chalk.gray('  Example: /plugin install github:user/repo'));
+          } else {
+            const { execSync } = require('child_process');
+            const pluginsDir = require('path').join(process.cwd(), '.smallcode', 'plugins');
+            const fs = require('fs');
+            if (!fs.existsSync(pluginsDir)) fs.mkdirSync(pluginsDir, { recursive: true });
+            console.log(chalk.gray(`  Installing ${pkg}...`));
+            try {
+              execSync(`npm install --prefix "${pluginsDir}" ${pkg}`, { encoding: 'utf-8', timeout: 60000, cwd: process.cwd() });
+              console.log(chalk.green(`  ✓ Installed ${pkg}`));
+              console.log(chalk.gray('  Restart SmallCode to activate.'));
+            } catch (e) {
+              console.log(chalk.red(`  ✗ Install failed: ${(e.stderr || e.message || '').slice(0, 200)}`));
+            }
+          }
+        } else if (sub === 'remove') {
+          const pkg = parts[2];
+          if (!pkg) {
+            console.log(chalk.gray('  Usage: /plugin remove <name>'));
+          } else {
+            const pluginDir = require('path').join(process.cwd(), '.smallcode', 'plugins', pkg);
+            const fs = require('fs');
+            if (fs.existsSync(pluginDir)) {
+              fs.rmSync(pluginDir, { recursive: true });
+              console.log(chalk.green(`  ✓ Removed ${pkg}`));
+            } else {
+              console.log(chalk.red(`  Plugin "${pkg}" not found in .smallcode/plugins/`));
+            }
+          }
         } else {
-          console.log(chalk.gray('  /plugin list    Show installed plugins'));
+          console.log(chalk.gray('  /plugin list              Show installed plugins'));
+          console.log(chalk.gray('  /plugin install <pkg>     Install from npm/github'));
+          console.log(chalk.gray('  /plugin remove <name>     Remove a plugin'));
         }
         console.log('');
         rl.prompt();

@@ -15,22 +15,22 @@ const ESCALATION_PROVIDERS = {
     name: 'Claude',
     baseUrl: 'https://api.anthropic.com/v1',
     envKey: 'ANTHROPIC_API_KEY',
-    defaultModel: 'claude-sonnet-4-20250514',
-    models: ['claude-sonnet-4-20250514', 'claude-haiku-4-20250514', 'claude-opus-4-20250514'],
+    defaultModel: 'claude-sonnet-4-5',
+    models: ['claude-sonnet-4-5', 'claude-sonnet-4-6', 'claude-haiku-4-5'],
   },
   openai: {
     name: 'OpenAI',
     baseUrl: 'https://api.openai.com/v1',
     envKey: 'OPENAI_API_KEY',
-    defaultModel: 'gpt-4o-mini',
-    models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo'],
+    defaultModel: 'gpt-5.4-mini',
+    models: ['gpt-5.4-mini', 'gpt-5.4-nano'],
   },
   deepseek: {
     name: 'DeepSeek',
     baseUrl: 'https://api.deepseek.com/v1',
     envKey: 'DEEPSEEK_API_KEY',
-    defaultModel: 'deepseek-coder',
-    models: ['deepseek-coder', 'deepseek-chat'],
+    defaultModel: 'deepseek-v4',
+    models: ['deepseek-v4', 'deepseek-v4-pro', 'deepseek-v4-flash'],
   },
 };
 
